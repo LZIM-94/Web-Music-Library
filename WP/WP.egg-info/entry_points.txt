@@ -1,0 +1,5 @@
+      [paste.app_factory]
+      main = wp:main
+      [console_scripts]
+      initialize_WP_db = wp.scripts.initializedb:main
+      

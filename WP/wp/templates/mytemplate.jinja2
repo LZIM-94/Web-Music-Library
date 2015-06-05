@@ -1,0 +1,524 @@
+<!DOCTYPE html>
+<html lang="{{request.locale_name}}">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="pyramid web application">
+    <meta name="author" content="Pylons Project">
+    <link rel="shortcut icon" href="{{request.static_url('wp:static/pyramid-16x16.png')}}">
+
+    <title>Music genre interactive library</title>
+
+    <!-- Bootstrap core CSS -->
+    <link href="//oss.maxcdn.com/libs/twitter-bootstrap/3.0.3/css/bootstrap.min.css" rel="stylesheet">
+
+    <!-- Custom styles for this scaffold -->
+    <link href="{{request.static_url('wp:static/theme.css')}}" rel="stylesheet">
+
+    <!-- HTML5 shim and Respond.js IE8 support of HTML5 elements and media queries -->
+    <!--[if lt IE 9]>
+      <script src="//oss.maxcdn.com/libs/html5shiv/3.7.0/html5shiv.js"></script>
+      <script src="//oss.maxcdn.com/libs/respond.js/1.3.0/respond.min.js"></script>
+    <![endif]-->
+  </head>
+
+  <body>
+	
+   <div>
+
+   
+   <p tal:condition="logged_in" class="pull-right">
+   <a href="{{request.application_url}}/logout">Logout</a>
+   </p>
+   <image src = "{{request.static_url('wp:static/BackArrow.png')}}" id="refresh"></image>
+	  <canvas height='1080' width='1920' id = "canv"> </canvas>
+	  <span id = "YearText"> 2014</span>
+	  <script src="{{request.static_url('wp:static/fabric.js')}}"></script>
+	   <script src="{{request.static_url('wp:static/jquery.js')}}"></script>
+	    <script src="{{request.static_url('wp:static/uppod.js')}}"></script>
+	  <script>
+	    
+		
+		var default_pos = [960,540];
+		
+
+		
+		
+		 var canvas = new fabric.Canvas('canv',{
+	 renderOnAddRemove: false,
+      selection: false
+   });
+   
+   
+   fabric.Image.fromURL("{{request.static_url('wp:static/general_background.jpg')}}", (function(image){
+      
+     
+      image.applyFilters((function(){
+      this.canvas.backgroundImage = image.getElement();}))}));
+
+   
+
+    var default_radius = 120;
+     
+	var current_index = 0;
+
+	
+    function init_background(year)
+	{
+		
+         $('#YearText').html(year);
+	    
+
+	     var rectangle;
+        
+		 canvas.clear();
+		 rectangle = new fabric.Rect({
+		 left: 960,
+		 top: 540,
+		 width: 1920,
+		 height: 1080,
+		 fill: '#fff',
+		 opacity:0.9,
+		});
+		rectangle.hasBorders = false;
+        rectangle.hasControls = false;  
+		rectangle.selectable = false;
+		rectangle.setGradientFill ({
+		  x1: 0,
+		  y1: 0,
+		  x2: rectangle.width,
+		  y2: rectangle.height,
+		  colorStops: {
+			0: "#4d4d4d",
+			1: "#008cf0"
+			
+		   
+		  }
+		});
+		
+		
+		
+		
+		if(year < 2000)
+		{
+		 canvas.clear(); 
+	     rectangle = new fabric.Rect({
+		 left: 960,
+		 top: 540,
+		 width: 1920,
+		 height: 1080,
+		 fill: '#fff',
+		 opacity:0.9,
+		});
+		rectangle.hasBorders = false;
+        rectangle.hasControls = false;  
+		rectangle.selectable = false;
+		rectangle.setGradientFill ({
+		  x1: 0,
+		  y1: 0,
+		  x2: rectangle.width,
+		  y2: rectangle.height,
+		  colorStops: {
+			0: "#007fff",
+			1: "#ed3bca",
+		   
+		  }
+		});
+		
+		} else if(year < 2010 && year >= 2000)
+		{
+		 canvas.clear();
+		 rectangle = new fabric.Rect({
+		 left: 960,
+		 top: 540,
+		 width: 1920,
+		 height: 1080,
+		 fill: '#fff',
+		 opacity:0.9,
+		});
+		rectangle.hasBorders = false;
+        rectangle.hasControls = false;  
+		rectangle.selectable = false;
+		rectangle.setGradientFill ({
+		  x1: 0,
+		  y1: 0,
+		  x2: rectangle.width,
+		  y2: rectangle.height,
+		  colorStops: {
+			 0: "#99ff33",
+			1: "#ffb433",
+			
+		   
+		  }
+		});
+		
+	
+		
+		}
+     
+		
+	    canvas.add(rectangle);
+	}
+	
+	
+    document.getElementById('refresh').onclick  =  function()
+    {
+	
+		   canvas.clear(); 
+	
+	       {% for gen in genre_db%}
+		   if({{gen.id}} == current_index)
+		   {
+		       if("{{gen.parent_id}}" != "None")
+			   {
+                   createGenreTree(default_pos,default_radius,{{gen.parent_id}});
+			   }
+			   else
+			   {
+			       createGenreTree(default_pos,default_radius,-1);
+			   }
+		   }
+		  
+		   {%endfor%}
+    }
+    
+	window.onload = function()
+    {
+        createGenreTree(default_pos,default_radius,-1);
+    }
+	
+	
+	
+    
+    function rotateVector(vec,angle)
+    {
+    
+       var x = vec[0]*Math.cos(angle) - vec[1]*Math.sin(angle); 
+       var y = vec[0]*Math.sin(angle) + vec[1]*Math.cos(angle);
+       return normalize([x,y]);
+    }
+    
+    function normalize(vec)
+    {
+       var len = Math.sqrt(Math.pow(vec[0],2) + Math.pow(vec[1],2) );
+       vec[0] = vec[0]/len;
+       vec[1]=vec[1]/len;
+    return vec;
+    }
+    
+    var count = 1;
+    function createGenreTree(position,radius1, index)
+    {
+     
+	 
+	 var genre_name;
+	 var genre_id;
+	 var year;
+	 
+	 {%for gen in genre_db%}
+	 
+	 if(index >= 0)
+	 {
+	  if("{{gen.id}}" == index)
+	  {
+	  genre_name = "{{gen.name}}";
+	  genre_id = {{gen.id}};
+	  year = {{gen.year_of_found}}
+	  }
+	 }
+	 else
+	 {
+	 if("{{gen.parent_id}}" == "None")
+	  {
+	   genre_name = "{{gen.name}}";
+	   genre_id = {{gen.id}};
+	   year = {{gen.year_of_found}}
+	   }
+	 }
+	 
+	 init_background(year);
+	
+	{%endfor%}
+    
+	 
+	 
+	 
+	  current_index = genre_id;
+      CreateGenreWindow();
+      
+      var count_child = 0;
+	   {%for child_genre in  genre_db%}
+	   if ("{{child_genre.parent_id}}" == genre_id) count_child++;
+	   
+	   {%endfor%}
+    
+    
+      var start_vec = [0,1];
+      start_vec = normalize(start_vec);
+      
+    var angle = (360 / count_child)/180*Math.PI;
+    if(count_child <= 6)  {var coef = 0.7;}
+    else{ var coef  = 0.7 * 6/count_child ;}
+      
+      var radius = radius1;
+    
+      var old_radius = radius;
+     
+      var dist = radius * 2;
+    
+      createCircle(position,radius,genre_name,false);  
+	  
+	  
+	   var counter = 0;
+	   
+      var radius = radius * coef;    
+     {%for child_genre in  genre_db %}
+	 
+	 if ( "{{child_genre.parent_id}}" == genre_id)
+	 {
+	 
+            var new_vec = rotateVector(start_vec, counter * angle);
+            var random_val = 1;
+            var pos = [position[0] + new_vec[0]*dist*random_val,position[1] + new_vec[1]*dist*random_val];
+    
+            var line_pos = [position[0] + new_vec[0]*old_radius,position[1] + new_vec[1]*old_radius];
+    
+            createLine(line_pos,pos);
+            CreateChildGenre(new_vec ,radius,pos,'{{child_genre.name}}',{{child_genre.id}}); 
+            counter++;
+	}
+      {%endfor%}
+      
+    }
+    
+    function CreateChildGenre(start_vec, radius,position,name,id)
+    {
+      
+ 
+       var count_child = 0;
+	   {%for child_genre in  genre_db%}
+	   if ("{{child_genre.parent_id}}" == id) count_child++;
+       {%endfor%}
+	 
+      start_vec = normalize(start_vec);
+     start_vec = [-start_vec[0],-start_vec[1]];
+      
+      var angle = (180 / (count_child ))/180*Math.PI;
+    
+      if(count_child <= 5)  {var coef = 0.5;}
+    else{ var coef  = 0.5 * 6/count_child ;}
+      
+       if(coef * radius <= default_radius/3 && count_child > 0)
+	   {
+       createCircle(position,radius,name,true);
+	   }
+	   else
+	   {
+	      createCircle(position,radius,name,false);
+	   }
+		
+      var dist = radius * 2    
+      var old_radius = radius;
+      var radius = coef * radius;
+      var counter = 0;
+	  
+       if(radius > default_radius/3)
+       {
+                {%for child_genre in  genre_db %}
+	 
+				 if ( "{{child_genre.parent_id}}" == id)
+				 {
+							   
+                   
+                 
+                   var new_vec = rotateVector(start_vec,90 + counter * angle);
+                   var random_val = 1;
+                   var pos = [position[0] +  new_vec[0]*dist*random_val,position[1]+new_vec[1]*dist*random_val];
+    
+					var line_pos = [position[0] + new_vec[0]*old_radius,position[1] + new_vec[1]*old_radius];
+                    createLine(line_pos,pos);
+                    CreateChildGenre(new_vec ,radius,pos,'{{child_genre.name}}',{{child_genre.id}});
+                  
+				  counter++;
+				  }
+				  
+				{%endfor%}
+    }
+	
+	
+    }
+    
+    
+    function random(min,max)
+    { 
+      var res = Math.random() * (max - min) + min;
+      return res;
+    }
+    
+    function createLine(pos1,pos2)
+    {
+       var newLine = new fabric.Line([pos1[0], pos1[1], pos2[0],  pos2[1]], {
+       stroke: "#ff0000",
+       strokeWidth: 4,
+	   fill: '#fff',
+	   opacity: 1,
+      strokeDashArray: [3, 3, 3]
+});
+    newLine.hasBorders = false;
+    newLine.hasControls = false;  
+	
+	newLine.animate('opacity', 1, {
+  onChange: canvas.renderAll.bind(canvas),
+  duration: 2000,from:0
+  
+});
+	
+     canvas.add(newLine);
+    }
+    
+    function createCircle(position,radius,name,haveChild)
+    {  
+         var circle = new fabric.Circle({
+          left: 0,
+          top: 0,
+          fill: '#fff',
+          radius: 1
+         });
+		circle.radius =  radius;
+		circle.left = position[0];
+		circle.top = position[1];
+		circle.hasBorders = false;
+		circle.hasControls = false;  
+			
+        
+		
+		if(haveChild == true){circle.fill = '#cccccc';}
+		
+		 var text = new fabric.Text(name, {
+		  textAlign: 'center',
+		  top:0,
+		  left:0,
+		  fontSize: 27,
+		  height: 1,
+		  width:1,
+		  fontWeight: 'bold',
+		  fontFamily: 'Helvetica'
+		  
+		  
+		});
+		
+		
+		text.hasBorders = false;
+		text.hasControls = false;
+		
+		text.scaleX  = radius/default_radius;
+		text.scaleY = radius/default_radius;
+		 
+		text.left = position[0];
+		text.top = position[1];
+		
+		
+
+		var group = new fabric.Group([ circle, text ], {
+		 
+		});
+		
+		
+		group.hasControls = false;
+		group.lockMovementX =true;
+		group.lockMovementY =true;
+		
+		
+		  group.animate('top', position[1], {
+  onChange: canvas.renderAll.bind(canvas),
+  duration: 1000,from:default_pos[1],easing: fabric.util.ease.easeOutSine
+  
+});
+
+group.animate('left', position[0], {
+  onChange: canvas.renderAll.bind(canvas),
+  duration: 1000,from:default_pos[0],easing: fabric.util.ease.easeOutSine
+
+});
+		
+		
+		group.on('selected',function(option){
+		
+		    var index;
+		    
+			{%for gen in  genre_db%}
+		   if ("{{gen.name}}" == name ) 
+		   { 
+		    index = {{gen.id}};
+		     
+		   }
+		   {%endfor%}
+		   
+		    if(index != current_index)
+			{
+		          createGenreTree(default_pos,default_radius,index);
+			}
+			CreateGenreWindow();
+			});
+
+        canvas.add(group);
+		
+    }
+	   
+	   var modal;
+	   
+  function CreateGenreWindow(){
+	    $(modal).remove();
+		modal = createModal();
+		
+        
+       {%for gen in genre_db%}
+		if({{gen.id}} == current_index)  
+		
+		{
+	   $(modal).html(' <div class="modal" >  </div><span style = "position: relative; left: 20px; top: 10px; font-size: 50px; color: gray;"> {{gen.name}} </span>');
+	   $(modal).append('<image  src = {{request.static_url('wp:static/CloseBtn.png')}} style = "position: absolute; left: 350px; top: 10px; height: 40px; width: 40px" id="closeButton"  />');
+	   $(modal).append('<div style= "position:relative;"><textarea readonly class="textinfo">{{gen.info}}</textarea></div>');
+	  // $(modal).append('<span id="Music_Block" > Популярная музыка в этом жанре:</span>');
+	  
+	  $(modal).append('<ul style="position:relative; top:20px; left:20px;>');
+	  {%for music in music_db%}
+	  if({{music.genre_id}} == {{gen.id}})
+	  {
+	  
+	  $(modal).append('<li class="player">{{music.author}} - {{music.title}}<object "type="application/x-shockwave-flash" data="{{request.static_url('wp:static/ump3player_500x70.swf')}}" height="70" width="360"><param name="wmode" value="transparent" /><param name="allowFullScreen" value="true" /><param name="allowScriptAccess" value="always" /><param name="movie" value="{{request.static_url('wp:static/ump3player_500x70.swf')}}" /><param name="FlashVars" value="way={{request.static_url('wp:static/{}'.format(music.source_static))}}&amp;swf={{request.static_url('wp:static/ump3player_500x70.swf')}}&amp;w=470&amp;h=70&amp;autoplay=0&amp;q=&amp;skin=white&amp;volume=70&amp;comment=" /></object></li>');
+	 
+	 }
+	 $(modal).append('</ul>');
+	   {%endfor%}
+	  
+	
+	   }
+      {%endfor%}
+	  $('#closeButton').click (function(){ $(modal).remove();});
+	}
+	
+	
+	    function createModal() {
+		
+		
+        $("body").prepend('<div id="modal"  style = " background-image: url({{request.static_url('wp:static/Background_transparent.png')}}); background-repeat: repeat; border-radius: 20px;position: fixed; z-index: 3;left: 20px; top: 60px; width: 400px;  height: 800px"></div>');
+        $("#background").click(function () {
+            $("#background, #modal").remove();
+        });
+		
+		
+        return $("#modal")
+
+    }
+	   
+	   
+	   
+	   
+	  </script>
+	  
+   </div>
+
+  </body>
+</html>
